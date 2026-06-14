@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# MLflow tracking local files
+mlruns/
+
+.DS_Store
+.vscode/
