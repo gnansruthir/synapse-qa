@@ -1,14 +1,27 @@
-import networkx as nx
+import re
+from rdflib import Graph, URIRef, Literal, Namespace
+from rdflib.namespace import RDF, FOAF
 
 class KnowledgeGraph:
     def __init__(self):
-        # Initialize a MultiDiGraph to support multiple relationships between entities
-        self.graph = nx.MultiDiGraph()
+        self.graph = Graph()
+        # Custom Namespace for our local Wikidata subset
+        self.EX = Namespace("http://example.org/wikidata/")
+        self.graph.bind("ex", self.EX)
         self._load_wikidata_subset()
 
+    def _uri_friendly(self, val):
+        """Converts strings to URI-compatible camelcase tokens."""
+        # Remove special characters and spaces
+        val_clean = re.sub(r'[^\w\s\.-]', '', val).strip()
+        # Camelcase it
+        words = val_clean.split()
+        if not words:
+            return "Unknown"
+        return "_".join(words)
+
     def _load_wikidata_subset(self):
-        """Loads a subset of verified facts representing Wikidata relations."""
-        # Triples format: (Subject, Predicate, Object)
+        """Loads verified facts into an RDF Graph."""
         facts = [
             ("Alexander Graham Bell", "invented", "Telephone"),
             ("Thomas Edison", "invented", "Lightbulb"),
@@ -40,53 +53,95 @@ class KnowledgeGraph:
         ]
         
         for subject, predicate, obj in facts:
-            self.graph.add_edge(subject, obj, relation=predicate)
-
-    def lookup_relation(self, subject, relation):
-        """Looks up the target object given a subject and relation predicate."""
-        if not self.graph.has_node(subject):
-            # Try a case-insensitive lookup
-            matching_nodes = [n for n in self.graph.nodes if n.lower() == subject.lower()]
-            if not matching_nodes:
-                return []
-            subject = matching_nodes[0]
+            sub_uri = self.EX[self._uri_friendly(subject)]
+            pred_uri = self.EX[self._uri_friendly(predicate)]
+            obj_uri = self.EX[self._uri_friendly(obj)]
             
-        results = []
-        for u, v, key, data in self.graph.out_edges(subject, keys=True, data=True):
-            if data.get("relation") == relation:
-                results.append(v)
-        return results
+            # Store primary URI nodes
+            self.graph.add((sub_uri, pred_uri, obj_uri))
+            # Store string literal representations for mapping
+            self.graph.add((sub_uri, FOAF.name, Literal(subject)))
+            self.graph.add((obj_uri, FOAF.name, Literal(obj)))
+
+    def find_node_by_name(self, name):
+        """Finds matching RDF URI node by checking literal FOAF names case-insensitively."""
+        query = """
+        PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+        SELECT ?node WHERE {
+            ?node foaf:name ?name .
+            FILTER(LCASE(STR(?name)) = LCASE(?target_name))
+        }
+        LIMIT 1
+        """
+        qres = self.graph.query(query, initBindings={'target_name': Literal(name)})
+        for row in qres:
+            return row.node
+        return None
+
+    def get_node_label(self, node_uri):
+        """Retrieves literal name representation of a node."""
+        name = self.graph.value(subject=node_uri, predicate=FOAF.name)
+        if name:
+            return str(name)
+        # Fallback to URI leaf
+        return str(node_uri).split("/")[-1].replace("_", " ")
 
     def verify_triple(self, subject, relation, obj):
         """
-        Verifies if a triple (Subject, Relation, Object) exists in the KG.
-        Returns (is_verified, correct_objects)
+        Verifies if a triple exists using a SPARQL ASK query.
+        Returns (is_verified, list_of_correct_objects)
         """
-        # Case-insensitive subject match
-        matching_subjects = [n for n in self.graph.nodes if n.lower() == subject.lower()]
-        if not matching_subjects:
+        sub_node = self.find_node_by_name(subject)
+        obj_node = self.find_node_by_name(obj)
+        pred_uri = self.EX[self._uri_friendly(relation)]
+        
+        if not sub_node:
             return False, []
+
+        # 1. Ask SPARQL query to verify fact existence
+        ask_query = """
+        ASK {
+            ?sub ?pred ?obj .
+        }
+        """
+        is_verified = bool(self.graph.query(
+            ask_query, 
+            initBindings={'sub': sub_node, 'pred': pred_uri, 'obj': obj_node or URIRef("http://none")}
+        ))
         
-        sub = matching_subjects[0]
+        # 2. Query SPARQL to find correct answers/alternatives for this relationship
+        select_query = """
+        PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+        SELECT ?objName WHERE {
+            ?sub ?pred ?objNode .
+            ?objNode foaf:name ?objName .
+        }
+        """
         correct_objects = []
-        is_verified = False
-        
-        # Check edges
-        for u, v, key, data in self.graph.out_edges(sub, keys=True, data=True):
-            if data.get("relation") == relation:
-                correct_objects.append(v)
-                if v.lower() == obj.lower():
-                    is_verified = True
-                    
+        qres = self.graph.query(select_query, initBindings={'sub': sub_node, 'pred': pred_uri})
+        for row in qres:
+            correct_objects.append(str(row.objName))
+            
         return is_verified, correct_objects
 
     def get_all_triples(self):
-        """Returns list of all triples in the graph."""
+        """Returns list of all triples in the graph via SPARQL SELECT."""
+        query = """
+        PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+        SELECT ?subName ?pred ?objName WHERE {
+            ?subNode ?pred ?objNode .
+            ?subNode foaf:name ?subName .
+            ?objNode foaf:name ?objName .
+        }
+        """
+        qres = self.graph.query(query)
         triples = []
-        for u, v, key, data in self.graph.edges(keys=True, data=True):
+        for row in qres:
+            # Extract relation label from URI
+            relation = str(row.pred).split("/")[-1].replace("_", " ")
             triples.append({
-                "subject": u,
-                "relation": data.get("relation"),
-                "object": v
+                "subject": str(row.subName),
+                "relation": relation,
+                "object": str(row.objName)
             })
         return triples
