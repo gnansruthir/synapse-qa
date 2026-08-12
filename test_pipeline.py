@@ -7,17 +7,17 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from pipeline.knowledge_graph import KnowledgeGraph
 from pipeline.rules import SymbolicValidator
 from pipeline.reasoner import NeuroSymbolicReasoner
-from pipeline.experiments import run_mlflow_experiments, get_benchmark_table
+from pipeline.experiments import run_evaluation, get_benchmark_table
 
 def main():
     print("=== SynapseQA Hybrid Reasoning Validation ===")
     
     # 1. Initialize logic components
-    print("Initializing Knowledge Graph (NetworkX)...")
+    print("Initializing Knowledge Graph demo facts...")
     kg = KnowledgeGraph()
-    print(f"Loaded {len(kg.get_all_triples())} verified Wikidata facts.")
+    print(f"Loaded {len(kg.get_all_triples())} demo knowledge-graph facts.")
     
-    print("\nSetting up SPARQL-like validator rules...")
+    print("\nSetting up SPARQL validator rules...")
     validator = SymbolicValidator(kg)
     
     print("\nInitializing Neuro-Symbolic Reasoning engine...")
@@ -41,7 +41,7 @@ def main():
     # 3. Test MLflow setup
     print("\nSimulating MLflow Experiment Telemetry runs...")
     try:
-        run_mlflow_experiments()
+        run_evaluation()
         print("MLflow tracking completed successfully.")
     except Exception as e:
         print(f"MLflow simulation failed/skipped: {e}")

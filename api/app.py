@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from pipeline.knowledge_graph import KnowledgeGraph
 from pipeline.rules import SymbolicValidator
 from pipeline.reasoner import NeuroSymbolicReasoner
-from pipeline.experiments import run_mlflow_experiments, get_benchmark_table
+from pipeline.experiments import run_evaluation, get_benchmark_table
 
 # Setup directories
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,7 +22,7 @@ reasoner = NeuroSymbolicReasoner(kg, validator)
 # Run MLflow runs on startup to populate local experiment repository
 print("Initializing MLflow run telemetry...")
 try:
-    run_mlflow_experiments()
+    run_evaluation()
 except Exception as e:
     print(f"MLflow initialization skipped/failed: {e}")
 
@@ -51,7 +51,7 @@ async def read_index():
 async def run_query(request: QueryRequest):
     """
     Accepts natural language question, processes via the Neuro-Symbolic 
-    reasoner, runs SPARQL checks, and logs traces.
+    reasoner, performs symbolic knowledge graph verification, and logs traces.
     """
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
@@ -65,6 +65,14 @@ async def run_query(request: QueryRequest):
 @app.get("/api/metrics")
 def get_metrics():
     """Returns the benchmark table comparison results."""
+    return {
+        "success": True,
+        "table": get_benchmark_table()
+    }
+
+@app.get("/api/benchmark")
+def get_benchmark():
+    """Returns the benchmark table comparison results for frontend dashboards."""
     return {
         "success": True,
         "table": get_benchmark_table()

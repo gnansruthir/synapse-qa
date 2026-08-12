@@ -1,7 +1,7 @@
 import mlflow
 import os
 
-def run_mlflow_experiments():
+def run_evaluation():
     """
     Simulates MLflow tracking runs for the 3 reasoning configurations:
     1. LLM Alone
@@ -46,7 +46,11 @@ def run_mlflow_experiments():
         mlflow.log_metric("ExactMatch", 0.796)
         mlflow.log_metric("F1_Score", 0.842)
         print("Logged Configuration 3: SynapseQA Complete Pipeline")
-        
+
+
+# Backward compatibility alias for existing import patterns
+run_mlflow_experiments = run_evaluation
+
 def get_benchmark_table():
     """Returns the F1 and EM metrics as JSON object for the frontend dashboard."""
     return [

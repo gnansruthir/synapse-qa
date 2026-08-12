@@ -9,7 +9,48 @@ document.addEventListener('DOMContentLoaded', () => {
   initStarfield();
   init3DGraph();
   initQueryConsole();
+  loadBenchmarkData();
 });
+
+async function loadBenchmarkData() {
+  const tableBody = document.getElementById('benchmark-table-body');
+  const orbScore = document.getElementById('orb-f1-score');
+
+  if (!tableBody || !orbScore) {
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/benchmark');
+    const data = await response.json();
+    if (!data || !data.success || !Array.isArray(data.table)) {
+      throw new Error('Invalid benchmark response');
+    }
+
+    tableBody.innerHTML = '';
+    data.table.forEach(row => {
+      const tr = document.createElement('tr');
+      if (row.configuration.includes('Symbolic') || row.configuration.includes('SynapseQA')) {
+        tr.className = 'highlight-row';
+      }
+      tr.innerHTML = `
+        <td>${row.configuration}</td>
+        <td>${row.exact_match}</td>
+        <td>${row.f1_score}</td>
+      `;
+      tableBody.appendChild(tr);
+    });
+
+    const synapseRow = data.table.find(r => r.configuration.includes('Symbolic') || r.configuration.includes('SynapseQA'));
+    if (synapseRow) {
+      orbScore.textContent = synapseRow.f1_score;
+    }
+  } catch (err) {
+    tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: var(--accent-red);">Unable to load benchmark data.</td></tr>`;
+    orbScore.textContent = '--';
+    console.error('Benchmark fetch failed:', err);
+  }
+}
 
 // 1. Drifting background starfield
 function initStarfield() {
@@ -255,7 +296,7 @@ function initQueryConsole() {
       if (step.data) {
         let msg = step.message;
         if (step.data.candidate) {
-          msg += ` (Confidence: ${step.data.confidence}%)`;
+          msg += ` (confidence estimate, illustrative)`;
         }
         await typeText(content, msg, 15);
         

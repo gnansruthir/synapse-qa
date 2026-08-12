@@ -25,7 +25,7 @@
       <h1>LLMs Hallucinate.<br>SynapseQA <span>Doesn't.</span></h1>
       <p>
         A Neuro-Symbolic Reasoning engine linking Mistral-7B candidate generation 
-        with Neo4j/NetworkX Wikidata knowledge graph facts and SPARQL logical rules. 
+        with an RDFLib Wikidata knowledge graph and SPARQL logical rules. 
         Architecturally prevents errors prior to output delivery.
       </p>
       <a href="#demo-section" class="hero-cta">ASK A QUESTION</a>
@@ -61,13 +61,12 @@
         <div class="brain-visual">
           <div style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-neural);">
             &gt; Query: "Who invented the telephone?"<br>
-            &gt; LLM Candidate: "Thomas Edison invented..." (61.3% confidence)
+            &gt; LLM Candidate: "Thomas Edison invented..." (illustrative example)
           </div>
         </div>
       </div>
 
       <!-- Connector flow -->
-      <div class="bridge-container">
         <div class="bridge-connector">
           <div class="pulse-flow"></div>
         </div>
@@ -77,7 +76,7 @@
       <div class="brain-panel glass-panel panel-symbolic">
         <h3>Symbolic Layer</h3>
         <p>
-          Verifies facts using a **Wikidata Neo4j/NetworkX Knowledge Graph** and SPARQL logical validator rules. 
+          Verifies facts using a **Wikidata RDFLib Knowledge Graph** and SPARQL logical validator rules. 
           Triggers retries if outputs violate logical constraints.
         </p>
         <div class="brain-visual">
@@ -123,21 +122,9 @@
             <th>F1-Score</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="benchmark-table-body">
           <tr>
-            <td>LLM Alone</td>
-            <td>51.2%</td>
-            <td>61.3%</td>
-          </tr>
-          <tr>
-            <td>LLM + KG Retrieval</td>
-            <td>68.4%</td>
-            <td>74.1%</td>
-          </tr>
-          <tr class="highlight-row">
-            <td>LLM + KG + Symbolic (SynapseQA)</td>
-            <td>79.6%</td>
-            <td>84.2%</td>
+            <td colspan="3" style="text-align:center; color: var(--text-muted);">Loading benchmark results...</td>
           </tr>
         </tbody>
       </table>
@@ -179,7 +166,7 @@
       <div class="orb-container">
         <div class="orb-visual">
           <div class="orb-ring"></div>
-          <span class="orb-num">84.2%</span>
+          <span class="orb-num" id="orb-f1-score">--</span>
         </div>
         <div class="orb-label">F1-Score Accuracy</div>
       </div>
@@ -252,7 +239,7 @@
     SynapseQA — Neuro-Symbolic Cognitive Reasoning Environment. 
     Secure municipal network access only.
     <div class="footer-tech">
-      MISTRAL-7B · LANGGRAPH · NEO4J / NETWORKX · SPARQL · MLFLOW
+      MISTRAL-7B · LANGGRAPH · RDFLIB · SPARQL · MLFLOW
     </div>
   </footer>
 
