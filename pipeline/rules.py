@@ -8,6 +8,8 @@ class SymbolicValidator:
         # Mapping common patterns to KG predicates
         self.intent_rules = [
             (r"(?i)invented\s+([a-zA-Z\s]+)", "invented"),
+            (r"(?i)invented\s+by\s+([a-zA-Z\s]+)", "invented"),
+            (r"(?i)developed\s+by\s+([a-zA-Z\s\+]+)", "developed_by"),
             (r"(?i)developed\s+([a-zA-Z\s\+]+)", "developed_by"),
             (r"(?i)located\s+in\s+([a-zA-Z\s]+)", "located_in"),
             (r"(?i)capital\s+of\s+([a-zA-Z\s]+)", "capital_of"),

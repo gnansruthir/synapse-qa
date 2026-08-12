@@ -46,15 +46,18 @@ class NeuroSymbolicReasoner:
             rel = triple["relation"]
             obj = triple["object"]
             
+            # Normalize KG relation label to match fallback templates
+            rel_norm = rel.replace(" ", "_")
+
             # Formulate mock matches
             if sub.lower() in lower_query or obj.lower() in lower_query:
-                if rel == "invented":
+                if rel_norm == "invented":
                     return f"{sub} invented the {obj}.", 82.0
-                elif rel == "developed_by":
+                elif rel_norm == "developed_by":
                     return f"{sub} was developed by {obj}.", 84.0
-                elif rel == "located_in":
+                elif rel_norm == "located_in":
                     return f"{sub} is located in {obj}.", 85.0
-                elif rel == "capital_of":
+                elif rel_norm == "capital_of":
                     return f"{sub} is the capital of {obj}.", 88.0
 
         return "I am not certain about the verified facts for this question.", 45.0
@@ -71,8 +74,8 @@ class NeuroSymbolicReasoner:
         # --- STAGE 1: NEURAL GENERATION ---
         trace.append({
             "stage": 1,
-            "title": "Neural Generation (Mistral-7B LLM)",
-            "message": "Generating candidate answer from parameters...",
+            "title": "Neural Candidate Generation",
+            "message": "Generating candidate answer from the neural model...",
             "data": None
         })
         
