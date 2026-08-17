@@ -67,7 +67,7 @@ class NeuroSymbolicReasoner:
         Executes the 3-stage reasoning pipeline:
         Stage 1: Neural (LLM produces candidate)
         Stage 2: Symbolic (KG SPARQL rule check)
-        Stage 3: Validation and feedback retry (LangGraph loop)
+        Stage 3: Validation and feedback retry (automatic grounding loop)
         """
         trace = []
         
@@ -110,7 +110,7 @@ class NeuroSymbolicReasoner:
             # --- STAGE 3: RETRY LOOP WITH KG GROUNDING ---
             trace.append({
                 "stage": 3,
-                "title": "LangGraph Tool-Calling Feedback",
+                "title": "Automatic Retry with Grounding",
                 "message": "Injecting verified KG constraint back into prompt context and retrying...",
                 "data": None
             })
@@ -120,7 +120,7 @@ class NeuroSymbolicReasoner:
             correct_val = correction["expected"]
             
             # Build grounding context
-            grounding_context = f"FACT RULES: According to the Wikidata Knowledge Graph, the relationship is: {sub} {rel} {correct_val}."
+            grounding_context = f"FACT RULES: According to the knowledge graph, the relationship is: {sub} {rel} {correct_val}."
             
             # Retry candidate generation with facts injected
             final_answer, final_confidence = self._query_llm_candidate(question, system_context=grounding_context)

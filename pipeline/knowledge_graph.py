@@ -5,10 +5,10 @@ from rdflib.namespace import RDF, FOAF
 class KnowledgeGraph:
     def __init__(self):
         self.graph = Graph()
-        # Custom Namespace for our local Wikidata subset
-        self.EX = Namespace("http://example.org/wikidata/")
+        # Custom Namespace for demo RDF fact base
+        self.EX = Namespace("http://example.org/demo-facts/")
         self.graph.bind("ex", self.EX)
-        self._load_wikidata_subset()
+        self._load_demo_facts()
 
     def _uri_friendly(self, val):
         """Converts strings to URI-compatible camelcase tokens."""
@@ -20,8 +20,8 @@ class KnowledgeGraph:
             return "Unknown"
         return "_".join(words)
 
-    def _load_wikidata_subset(self):
-        """Loads verified facts into an RDF Graph."""
+    def _load_demo_facts(self):
+        """Loads demo fact triples into an RDF Graph for testing and evaluation."""
         facts = [
             ("Alexander Graham Bell", "invented", "Telephone"),
             ("Thomas Edison", "invented", "Lightbulb"),

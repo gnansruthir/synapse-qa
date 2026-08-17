@@ -25,7 +25,7 @@
       <h1>LLMs Hallucinate.<br>SynapseQA <span>Doesn't.</span></h1>
       <p>
         A Neuro-Symbolic Reasoning engine linking neural candidate generation 
-        with an RDFLib Wikidata knowledge graph and SPARQL logical rules. 
+        with an RDFLib RDF knowledge graph and SPARQL logical rules. 
         Architecturally prevents errors prior to output delivery.
       </p>
       <a href="#demo-section" class="hero-cta">ASK A QUESTION</a>
@@ -40,7 +40,7 @@
       <!-- Faint LLM thought stream -->
       <div class="thought-stream">
         <div class="thought-track">
-          ...checking entity... inventor of telephone... checking Wikidata facts... Thomas Edison invented lightbulb (verified ✓)... Edison invented telephone (contradiction caught ✗)... retrying target Alexander Graham Bell (verified ✓)... returning validated state...
+          ...checking entity... inventor of telephone... checking knowledge graph facts... Thomas Edison invented lightbulb (verified ✓)... Edison invented telephone (contradiction caught ✗)... retrying target Alexander Graham Bell (verified ✓)... returning validated state...
         </div>
       </div>
     </div>
@@ -76,7 +76,7 @@
       <div class="brain-panel glass-panel panel-symbolic">
         <h3>Symbolic Layer</h3>
         <p>
-          Verifies facts using a **Wikidata RDFLib Knowledge Graph** and SPARQL logical validator rules. 
+          Verifies facts using a **RDF Knowledge Graph** and SPARQL logical validator rules. 
           Triggers retries if outputs violate logical constraints.
         </p>
         <div class="brain-visual">
@@ -89,7 +89,7 @@
     </div>
 
     <div class="stats-strip">
-      WIKIDATA KNOWLEDGE GRAPH · SPARQL LOGICAL CONSTRAINTS · LANGGRAPH FEEDBACK RETRY LOOP
+      RDF KNOWLEDGE GRAPH · SPARQL LOGICAL CONSTRAINTS · AUTOMATIC RETRY LOOP
     </div>
   </section>
 
@@ -113,7 +113,7 @@
 
     <!-- Prominent Accuracy table -->
     <div class="accuracy-table-container">
-      <h4>Benchmarks:wikidata QA Evaluation</h4>
+      <h4>Benchmarks: RDF Knowledge Graph QA Evaluation</h4>
       <table class="accuracy-table">
         <thead>
           <tr>
@@ -182,9 +182,9 @@
       <div class="orb-container">
         <div class="orb-visual">
           <div class="orb-ring"></div>
-          <span class="orb-num" style="font-size: 1.5rem;">WIKIDATA</span>
+          <span class="orb-num" style="font-size: 1.5rem;">RDF KB</span>
         </div>
-        <div class="orb-label">Fact Source</div>
+        <div class="orb-label">Knowledge Base</div>
       </div>
 
       <div class="orb-container">
@@ -239,7 +239,7 @@
     SynapseQA — Neuro-Symbolic Cognitive Reasoning Environment. 
     Secure municipal network access only.
     <div class="footer-tech">
-      GEMINI API · LANGGRAPH · RDFLIB · SPARQL · MLFLOW
+      GEMINI API · RDFLIB · SPARQL · MLFLOW
     </div>
   </footer>
 
