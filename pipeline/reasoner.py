@@ -1,10 +1,14 @@
 import time
 import os
-import google.generativeai as genai
 
-# Attempt configure Gemini
-if os.getenv("GEMINI_API_KEY"):
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+try:
+    from google import genai
+except ImportError:  # pragma: no cover - optional dependency when Gemini is not installed
+    genai = None
+
+client = None
+if os.getenv("GEMINI_API_KEY") and genai is not None:
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 class NeuroSymbolicReasoner:
     def __init__(self, knowledge_graph, validator):
@@ -30,13 +34,18 @@ class NeuroSymbolicReasoner:
         if "java" in lower_query and "develop" in lower_query and not "gosling" in system_context.lower():
             return "Java was developed by Dennis Ritchie at Bell Labs.", 58.2
 
-        # Standard Gemini query if configured
-        if os.getenv("GEMINI_API_KEY"):
+        # Standard Gemini query if configured and the SDK is installed
+        if os.getenv("GEMINI_API_KEY") and client is not None:
             try:
-                model = genai.GenerativeModel('gemini-1.5-flash')
                 context_prompt = f"{system_context}\n\nQuestion: {query}\nProvide a concise direct answer."
-                response = model.generate_content(context_prompt)
-                return response.text.strip(), 78.5
+                response = client.models.generate_content(
+                    model='gemini-1.5-flash',
+                    contents=context_prompt,
+                )
+                text = getattr(response, 'text', '')
+                if not text and hasattr(response, 'candidates'):
+                    text = response.candidates[0].content.parts[0].text
+                return text.strip(), 78.5
             except Exception as e:
                 print(f"Gemini candidate generation failed: {e}")
 
@@ -61,6 +70,21 @@ class NeuroSymbolicReasoner:
                     return f"{sub} is the capital of {obj}.", 88.0
 
         return "I am not certain about the verified facts for this question.", 45.0
+
+    def _question_grounding_fact(self, question):
+        """Find the KG fact most relevant to the user's question, preferring facts whose object or subject is mentioned in the question."""
+        q_lower = question.lower()
+        for triple in self.kg.get_all_triples():
+            subject = triple["subject"]
+            relation = triple["relation"]
+            obj = triple["object"]
+            if obj.lower() in q_lower or subject.lower() in q_lower:
+                return {
+                    "subject": subject,
+                    "relation": relation,
+                    "expected": obj,
+                }
+        return None
 
     def reason(self, question):
         """
@@ -115,9 +139,13 @@ class NeuroSymbolicReasoner:
                 "data": None
             })
             
-            sub = correction["subject"]
-            rel = correction["relation"]
-            correct_val = correction["expected"]
+            grounding_fact = self._question_grounding_fact(question)
+            if grounding_fact is None:
+                grounding_fact = correction or {"subject": "unknown", "relation": "related_to", "expected": "unknown"}
+            
+            sub = grounding_fact["subject"]
+            rel = grounding_fact["relation"]
+            correct_val = grounding_fact["expected"]
             
             # Build grounding context
             grounding_context = f"FACT RULES: According to the knowledge graph, the relationship is: {sub} {rel} {correct_val}."

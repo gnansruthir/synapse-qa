@@ -68,6 +68,23 @@ class SymbolicValidator:
                         
         return None
 
+    def _find_expected_object_for_subject(self, subject, relation):
+        """Find the canonical object for a given subject/relation pair in the KG."""
+        relation_key = relation.replace("_", " ").lower()
+        for triple in self.kg.get_all_triples():
+            if triple["subject"].lower() == subject.lower() and triple["relation"].replace("_", " ").lower() == relation_key:
+                return triple["object"]
+        return None
+
+    def _find_subject_for_object(self, relation, obj):
+        """Find the subject whose KG fact matches the given relation and object."""
+        relation_key = relation.replace("_", " ").lower()
+        target_obj = obj.lower()
+        for triple in self.kg.get_all_triples():
+            if triple["relation"].replace("_", " ").lower() == relation_key and triple["object"].lower() == target_obj:
+                return triple["subject"]
+        return None
+
     def validate_answer(self, candidate_answer_text):
         """
         Validates the LLM's candidate answer text against the KG using SPARQL.
@@ -84,43 +101,32 @@ class SymbolicValidator:
         is_verified, correct_objs = self.kg.verify_triple(sub, rel, obj)
         
         if not is_verified:
-            # 2. Run SPARQL query to find correct subject for this relationship and target object
-            sparql_query = """
-            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-            SELECT ?subName WHERE {
-                ?subNode ?pred ?objNode .
-                ?subNode foaf:name ?subName .
-            }
-            """
-            
-            obj_node = self.kg.find_node_by_name(obj)
-            pred_uri = self.kg.EX[self.kg._uri_friendly(rel)]
-            
-            correct_subjects = []
-            if obj_node:
-                qres = self.kg.graph.query(
-                    sparql_query, 
-                    initBindings={'pred': pred_uri, 'objNode': obj_node}
-                )
-                for row in qres:
-                    correct_subjects.append(str(row.subName))
-                    
-            if correct_subjects:
-                correct_sub = correct_subjects[0]
+            # Prefer the fact that actually matches the target object for this relation.
+            correct_sub = self._find_subject_for_object(rel, obj)
+            if correct_sub:
                 error_msg = f"Logical contradiction caught in statement: '{sub} {rel} {obj}' violates constraints. SPARQL lookup states: '{correct_sub} {rel} {obj}'."
                 return False, error_msg, {
                     "subject": correct_sub,
                     "relation": rel,
                     "expected": obj
                 }
-            else:
-                # Fallback to standard correct objects for the subject
-                correct_ans_str = ", ".join(correct_objs) if correct_objs else "unknown"
-                error_msg = f"Logical contradiction caught in statement: '{sub} {rel} {obj}' contradicts KG rule. Expected: '{correct_ans_str}'"
+
+            subject_expected_obj = self._find_expected_object_for_subject(sub, rel)
+            if subject_expected_obj:
+                error_msg = f"Logical contradiction caught in statement: '{sub} {rel} {obj}' violates constraints. The KG states: '{sub} {rel} {subject_expected_obj}'."
                 return False, error_msg, {
                     "subject": sub,
                     "relation": rel,
-                    "expected": correct_objs[0] if correct_objs else None
+                    "expected": subject_expected_obj
                 }
+
+            # Fallback to standard correct objects for the subject
+            correct_ans_str = ", ".join(correct_objs) if correct_objs else "unknown"
+            error_msg = f"Logical contradiction caught in statement: '{sub} {rel} {obj}' contradicts KG rule. Expected: '{correct_ans_str}'"
+            return False, error_msg, {
+                "subject": sub,
+                "relation": rel,
+                "expected": correct_objs[0] if correct_objs else None
+            }
             
         return True, None, None

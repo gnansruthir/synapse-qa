@@ -65,6 +65,17 @@ def test_reasoner_pipeline(qa_setup):
     assert "Alexander Graham Bell" in result["final_answer"]
     assert len(result["trace"]) > 0
 
+
+def test_reasoner_uses_subject_specific_grounding(qa_setup):
+    _, _, reasoner = qa_setup
+
+    result = reasoner.reason("Where is the Eiffel Tower located?")
+
+    assert result["success"] is True
+    assert "Paris" in result["final_answer"]
+    assert "London" not in result["final_answer"]
+
+
 def test_api_endpoints():
     # Health check
     response = client.get("/api/health")
