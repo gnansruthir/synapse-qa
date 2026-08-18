@@ -106,12 +106,14 @@ def generate_benchmark_metrics():
         question = example["question"]
         truth = example["answer"]
 
+        retrieval_context = build_retrieval_context(question, examples)
+
         candidate_alone, _ = reasoner._query_llm_candidate(question)
         candidate_with_kg, _ = reasoner._query_llm_candidate(
             question,
-            system_context=build_retrieval_context(question, examples),
+            system_context=retrieval_context,
         )
-        final_result = reasoner.reason(question)
+        final_result = reasoner.reason(question, retrieval_context=retrieval_context)
         candidate_grounded = final_result.get("final_answer", "")
 
         for config, prediction in [

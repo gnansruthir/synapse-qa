@@ -76,6 +76,19 @@ def test_reasoner_uses_subject_specific_grounding(qa_setup):
     assert "London" not in result["final_answer"]
 
 
+def test_reasoner_respects_retrieval_context_for_symbolic_validation(qa_setup):
+    _, _, reasoner = qa_setup
+
+    result = reasoner.reason(
+        "Where is the Eiffel Tower located?",
+        retrieval_context="FACT: Eiffel Tower located_in Paris."
+    )
+
+    assert result["success"] is True
+    assert "Paris" in result["final_answer"]
+    assert "London" not in result["final_answer"]
+
+
 def test_api_endpoints():
     # Health check
     response = client.get("/api/health")

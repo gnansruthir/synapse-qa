@@ -24,15 +24,15 @@ class NeuroSymbolicReasoner:
         # Targeted mock hallucinations for testing the validator
         lower_query = query.lower()
         if "telephone" in lower_query and "invent" in lower_query and not "bell" in system_context.lower():
-            # Classic target hallucination
-            return "Thomas Edison invented the telephone in 1876.", 61.3
+            # Demonstration-only hallucination path: keep the value as a generic confidence cue, never as a benchmark claim.
+            return "Thomas Edison invented the telephone in 1876.", 0.61
             
         if "eiffel" in lower_query and "located" in lower_query and not "paris" in system_context.lower():
-            # Another target hallucination
-            return "The Eiffel Tower is located in London.", 55.4
+            # Demonstration-only hallucination path: keep the value as a generic confidence cue, never as a benchmark claim.
+            return "The Eiffel Tower is located in London.", 0.55
             
         if "java" in lower_query and "develop" in lower_query and not "gosling" in system_context.lower():
-            return "Java was developed by Dennis Ritchie at Bell Labs.", 58.2
+            return "Java was developed by Dennis Ritchie at Bell Labs.", 0.58
 
         # Standard Gemini query if configured and the SDK is installed
         if os.getenv("GEMINI_API_KEY") and client is not None:
@@ -86,7 +86,22 @@ class NeuroSymbolicReasoner:
                 }
         return None
 
-    def reason(self, question):
+    def _fact_from_context(self, retrieval_context):
+        """Extract the exact fact embedded in a retrieval context string when one is provided."""
+        if not retrieval_context:
+            return None
+        retrieval_text = retrieval_context.lower()
+        for triple in self.kg.get_all_triples():
+            fact = f"{triple['subject']} {triple['relation']} {triple['object']}"
+            if fact.lower() in retrieval_text:
+                return {
+                    "subject": triple["subject"],
+                    "relation": triple["relation"],
+                    "expected": triple["object"],
+                }
+        return None
+
+    def reason(self, question, retrieval_context=""):
         """
         Executes the 3-stage reasoning pipeline:
         Stage 1: Neural (LLM produces candidate)
@@ -103,13 +118,16 @@ class NeuroSymbolicReasoner:
             "data": None
         })
         
-        candidate, confidence = self._query_llm_candidate(question)
+        if retrieval_context:
+            candidate, confidence = self._query_llm_candidate(question, system_context=retrieval_context)
+        else:
+            candidate, confidence = self._query_llm_candidate(question)
         
         trace.append({
             "stage": 1,
             "title": "LLM Candidate Output",
             "message": f"Generated answer: '{candidate}'",
-            "data": {"candidate": candidate, "confidence": confidence}
+            "data": {"candidate": candidate, "confidence": confidence, "retrieval_context_used": bool(retrieval_context)}
         })
         
         # --- STAGE 2: SYMBOLIC CHECK ---
@@ -139,7 +157,9 @@ class NeuroSymbolicReasoner:
                 "data": None
             })
             
-            grounding_fact = self._question_grounding_fact(question)
+            grounding_fact = self._fact_from_context(retrieval_context)
+            if grounding_fact is None:
+                grounding_fact = self._question_grounding_fact(question)
             if grounding_fact is None:
                 grounding_fact = correction or {"subject": "unknown", "relation": "related_to", "expected": "unknown"}
             
