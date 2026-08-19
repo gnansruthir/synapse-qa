@@ -89,6 +89,17 @@ def test_reasoner_respects_retrieval_context_for_symbolic_validation(qa_setup):
     assert "London" not in result["final_answer"]
 
 
+def test_mock_retrieval_context_grounds_non_target_fact(qa_setup):
+    _, _, reasoner = qa_setup
+
+    answer, _ = reasoner._query_llm_candidate(
+        "Who formulated General Relativity?",
+        system_context="FACT: Albert Einstein formulated General Relativity.",
+    )
+
+    assert answer == "Albert Einstein formulated General Relativity."
+
+
 def test_api_endpoints():
     # Health check
     response = client.get("/api/health")

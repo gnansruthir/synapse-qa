@@ -15,6 +15,36 @@ class NeuroSymbolicReasoner:
         self.kg = knowledge_graph
         self.validator = validator
 
+    def _fact_from_context(self, retrieval_context):
+        """Extract the exact KG fact embedded in a retrieval context string."""
+        if not retrieval_context:
+            return None
+        retrieval_text = retrieval_context.lower()
+        for triple in self.kg.get_all_triples():
+            fact = f"{triple['subject']} {triple['relation']} {triple['object']}"
+            if fact.lower() in retrieval_text:
+                return triple
+        return None
+
+    def _format_fact_answer(self, triple):
+        """Format a retrieved fact as a concise answer for the local mock model."""
+        subject = triple["subject"]
+        relation = triple["relation"].replace("_", " ")
+        obj = triple["object"]
+        if relation == "invented":
+            return f"{subject} invented the {obj}."
+        if relation == "developed by":
+            return f"{subject} was developed by {obj}."
+        if relation == "located in":
+            return f"{subject} is located in {obj}."
+        if relation == "capital of":
+            return f"{subject} is the capital of {obj}."
+        if relation == "discovered":
+            return f"{subject} discovered {obj}."
+        if relation == "formulated":
+            return f"{subject} formulated {obj}."
+        return None
+
     def _query_llm_candidate(self, query, system_context=""):
         """
         Queries the LLM (Gemini or Mock fallback) to generate a candidate answer.
@@ -33,6 +63,13 @@ class NeuroSymbolicReasoner:
             
         if "java" in lower_query and "develop" in lower_query and not "gosling" in system_context.lower():
             return "Java was developed by Dennis Ritchie at Bell Labs.", 0.58
+
+        # The local mock must honor retrieval context for every relation, not only targeted demos.
+        context_fact = self._fact_from_context(system_context)
+        if context_fact:
+            context_answer = self._format_fact_answer(context_fact)
+            if context_answer:
+                return context_answer, 0.90
 
         # Standard Gemini query if configured and the SDK is installed
         if os.getenv("GEMINI_API_KEY") and client is not None:
@@ -83,21 +120,6 @@ class NeuroSymbolicReasoner:
                     "subject": subject,
                     "relation": relation,
                     "expected": obj,
-                }
-        return None
-
-    def _fact_from_context(self, retrieval_context):
-        """Extract the exact fact embedded in a retrieval context string when one is provided."""
-        if not retrieval_context:
-            return None
-        retrieval_text = retrieval_context.lower()
-        for triple in self.kg.get_all_triples():
-            fact = f"{triple['subject']} {triple['relation']} {triple['object']}"
-            if fact.lower() in retrieval_text:
-                return {
-                    "subject": triple["subject"],
-                    "relation": triple["relation"],
-                    "expected": triple["object"],
                 }
         return None
 
@@ -158,6 +180,12 @@ class NeuroSymbolicReasoner:
             })
             
             grounding_fact = self._fact_from_context(retrieval_context)
+            if grounding_fact:
+                grounding_fact = {
+                    "subject": grounding_fact["subject"],
+                    "relation": grounding_fact["relation"],
+                    "expected": grounding_fact["object"],
+                }
             if grounding_fact is None:
                 grounding_fact = self._question_grounding_fact(question)
             if grounding_fact is None:
