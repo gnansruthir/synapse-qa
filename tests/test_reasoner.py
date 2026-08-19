@@ -108,6 +108,16 @@ def test_mock_without_context_does_not_read_knowledge_graph(qa_setup):
     assert answer == "I am not certain about the verified facts for this question."
 
 
+def test_reasoner_can_disable_live_model(qa_setup):
+    kg, validator, _ = qa_setup
+
+    deterministic_reasoner = NeuroSymbolicReasoner(
+        kg, validator, use_live_model=False
+    )
+
+    assert deterministic_reasoner.use_live_model is False
+
+
 def test_validator_rejects_unparsable_candidate(qa_setup):
     _, validator, _ = qa_setup
 

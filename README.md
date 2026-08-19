@@ -49,7 +49,7 @@ SynapseQA is a hybrid QA demonstration that combines neural candidate generation
 
 ## Accuracy Benchmarks
 
-These metrics are computed at runtime from the 24-fact demo dataset. In the fair ablation below, retrieval and the symbolic pipeline both reach 98.3% F1. The symbolic layer rejects uncertainty responses, checks contradictions, and grounds retries; on this dataset it matches retrieval rather than adding a measured accuracy gain.
+These metrics are computed at runtime from the 24-fact demo dataset with the deterministic local mock; benchmark mode does not call Gemini even when an API key is configured. In the fair ablation below, retrieval and the symbolic pipeline both reach 98.3% F1. The symbolic layer caught and changed all 24 ungrounded mock candidates, grounding them to the same KG facts retrieval returns; on this dataset it matches retrieval rather than adding a measured accuracy gain.
 
 | Configuration | F1-Score (last run) | Hallucinations |
 | :--- | :---: | :---: |

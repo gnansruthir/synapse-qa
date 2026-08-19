@@ -11,9 +11,10 @@ if os.getenv("GEMINI_API_KEY") and genai is not None:
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 class NeuroSymbolicReasoner:
-    def __init__(self, knowledge_graph, validator):
+    def __init__(self, knowledge_graph, validator, use_live_model=True):
         self.kg = knowledge_graph
         self.validator = validator
+        self.use_live_model = use_live_model
 
     def _fact_from_context(self, retrieval_context):
         """Extract the exact KG fact embedded in a retrieval context string."""
@@ -72,7 +73,7 @@ class NeuroSymbolicReasoner:
                 return context_answer, 0.90
 
         # Standard Gemini query if configured and the SDK is installed
-        if os.getenv("GEMINI_API_KEY") and client is not None:
+        if self.use_live_model and os.getenv("GEMINI_API_KEY") and client is not None:
             try:
                 context_prompt = f"{system_context}\n\nQuestion: {query}\nProvide a concise direct answer."
                 response = client.models.generate_content(

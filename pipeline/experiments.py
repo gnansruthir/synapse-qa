@@ -93,7 +93,8 @@ def generate_benchmark_metrics():
 
     kg = KnowledgeGraph()
     validator = SymbolicValidator(kg)
-    reasoner = NeuroSymbolicReasoner(kg, validator)
+    # Keep benchmark results reproducible even when a Gemini key is configured.
+    reasoner = NeuroSymbolicReasoner(kg, validator, use_live_model=False)
     examples = generate_question_answer_pairs(kg)
 
     results = {
@@ -101,6 +102,8 @@ def generate_benchmark_metrics():
         "LLM + KG Retrieval": {"correct": 0, "f1": 0.0},
         "SynapseQA (LLM + KG + Symbolic)": {"correct": 0, "f1": 0.0},
     }
+    symbolic_catches = 0
+    symbolic_changes = 0
 
     for example in examples:
         question = example["question"]
@@ -115,6 +118,10 @@ def generate_benchmark_metrics():
         )
         final_result = reasoner.reason(question)
         candidate_grounded = final_result.get("final_answer", "")
+        if final_result.get("hallucination_caught"):
+            symbolic_catches += 1
+        if candidate_grounded != candidate_alone:
+            symbolic_changes += 1
 
         for config, prediction in [
             ("LLM Alone", candidate_alone),
@@ -131,6 +138,11 @@ def generate_benchmark_metrics():
         results[config]["f1_score"] = results[config]["f1"] / total if total else 0.0
 
     BENCHMARK_CACHE = results
+    results["_diagnostics"] = {
+        "symbolic_catches": symbolic_catches,
+        "symbolic_changes": symbolic_changes,
+        "total_examples": total,
+    }
     return results
 
 
@@ -143,6 +155,8 @@ def run_evaluation():
 
     # Log each configuration as its own tracked run
     for config_name, config_values in metrics.items():
+        if config_name.startswith("_"):
+            continue
         run_name = config_name
         with mlflow.start_run(run_name=run_name):
             mlflow.log_param("architecture", "neuro_symbolic" if "Symbolic" in config_name else "neural_retrieval" if "KG" in config_name else "neural_alone")
@@ -186,9 +200,16 @@ def get_benchmark_table():
 
 
 if __name__ == "__main__":
+    metrics = generate_benchmark_metrics()
     for row in get_benchmark_table():
         print(
             f"{row['configuration']}: "
             f"EM {row['exact_match']} | F1 {row['f1_score']} | "
             f"{row['hallucinations']}"
         )
+    print(
+        "Symbolic diagnostics: "
+        f"{metrics['_diagnostics']['symbolic_catches']} catches, "
+        f"{metrics['_diagnostics']['symbolic_changes']} changed outputs "
+        f"out of {metrics['_diagnostics']['total_examples']} examples"
+    )
