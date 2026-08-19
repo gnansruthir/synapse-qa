@@ -183,3 +183,12 @@ def get_benchmark_table():
             "hallucinations": "Contradictions Checked"
         },
     ]
+
+
+if __name__ == "__main__":
+    for row in get_benchmark_table():
+        print(
+            f"{row['configuration']}: "
+            f"EM {row['exact_match']} | F1 {row['f1_score']} | "
+            f"{row['hallucinations']}"
+        )
