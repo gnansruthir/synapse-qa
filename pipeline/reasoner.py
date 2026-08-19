@@ -86,25 +86,23 @@ class NeuroSymbolicReasoner:
             except Exception as e:
                 print(f"Gemini candidate generation failed: {e}")
 
-        # Default smart mock returns matching KG if no key
-        for triple in self.kg.get_all_triples():
-            sub = triple["subject"]
-            rel = triple["relation"]
-            obj = triple["object"]
-            
-            # Normalize KG relation label to match fallback templates
-            rel_norm = rel.replace(" ", "_")
+        # Retrieval-aware mock answers are only allowed when context was provided.
+        if system_context:
+            for triple in self.kg.get_all_triples():
+                sub = triple["subject"]
+                rel = triple["relation"]
+                obj = triple["object"]
 
-            # Formulate mock matches
-            if sub.lower() in lower_query or obj.lower() in lower_query:
-                if rel_norm == "invented":
-                    return f"{sub} invented the {obj}.", 82.0
-                elif rel_norm == "developed_by":
-                    return f"{sub} was developed by {obj}.", 84.0
-                elif rel_norm == "located_in":
-                    return f"{sub} is located in {obj}.", 85.0
-                elif rel_norm == "capital_of":
-                    return f"{sub} is the capital of {obj}.", 88.0
+                rel_norm = rel.replace(" ", "_")
+                if sub.lower() in lower_query or obj.lower() in lower_query:
+                    if rel_norm == "invented":
+                        return f"{sub} invented the {obj}.", 82.0
+                    elif rel_norm == "developed_by":
+                        return f"{sub} was developed by {obj}.", 84.0
+                    elif rel_norm == "located_in":
+                        return f"{sub} is located in {obj}.", 85.0
+                    elif rel_norm == "capital_of":
+                        return f"{sub} is the capital of {obj}.", 88.0
 
         return "I am not certain about the verified facts for this question.", 45.0
 

@@ -100,6 +100,14 @@ def test_mock_retrieval_context_grounds_non_target_fact(qa_setup):
     assert answer == "Albert Einstein formulated General Relativity."
 
 
+def test_mock_without_context_does_not_read_knowledge_graph(qa_setup):
+    _, _, reasoner = qa_setup
+
+    answer, _ = reasoner._query_llm_candidate("Who formulated General Relativity?")
+
+    assert answer == "I am not certain about the verified facts for this question."
+
+
 def test_api_endpoints():
     # Health check
     response = client.get("/api/health")

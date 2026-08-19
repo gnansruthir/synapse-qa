@@ -49,13 +49,13 @@ SynapseQA is a hybrid QA demonstration that combines neural candidate generation
 
 ## Accuracy Benchmarks
 
-These metrics are computed at runtime from the 24-fact demo dataset. On the current run, retrieval and the full pipeline tie at 98.3% F1; this indicates that retrieval already answers nearly all examples correctly, while symbolic validation adds contradiction detection and retry grounding rather than a measured accuracy gain on this set.
+These metrics are computed at runtime from the 24-fact demo dataset. In the fair ablation below, retrieval reaches 98.3% F1 while the current symbolic pipeline reaches 16.0% F1. The gap is a real implementation limitation: unhinted mock responses for most facts are uncertainty text that the validator currently treats as unparsable/valid, so they do not enter the grounding retry. This result is not presented as evidence that symbolic validation improves accuracy.
 
 | Configuration | F1-Score (last run) | Hallucinations |
 | :--- | :---: | :---: |
-| **LLM Alone** | 68.9% | High |
+| **LLM Alone** | 13.5% | High |
 | **LLM + KG Retrieval** | 98.3% | Moderate |
-| **LLM + KG + Symbolic (SynapseQA)** | 98.3% | **Contradictions Checked** |
+| **LLM + KG + Symbolic (SynapseQA)** | 16.0% | **Contradictions Checked** |
 
 Numbers are from an actual run on the 24-fact demo dataset, not hardcoded; reproduce with `python -m pipeline.experiments` or hit `/api/benchmark` for live numbers. See the note above on why symbolic ties retrieval here.
 
