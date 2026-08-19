@@ -180,6 +180,6 @@ def get_benchmark_table():
             "configuration": "LLM + KG + Symbolic (SynapseQA)",
             "exact_match": f"{metrics['SynapseQA (LLM + KG + Symbolic)']['exact_match'] * 100:.1f}%",
             "f1_score": f"{metrics['SynapseQA (LLM + KG + Symbolic)']['f1_score'] * 100:.1f}%",
-            "hallucinations": "Caught / Prevented"
+            "hallucinations": "Contradictions Checked"
         },
     ]
