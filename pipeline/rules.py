@@ -91,7 +91,7 @@ class SymbolicValidator:
         """
         triple = self.parse_statement(candidate_answer_text)
         if not triple:
-            return True, None, None
+            return False, "Candidate does not contain a parseable fact statement.", None
             
         sub = triple["subject"]
         rel = triple["relation"]

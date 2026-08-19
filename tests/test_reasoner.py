@@ -108,6 +108,18 @@ def test_mock_without_context_does_not_read_knowledge_graph(qa_setup):
     assert answer == "I am not certain about the verified facts for this question."
 
 
+def test_validator_rejects_unparsable_candidate(qa_setup):
+    _, validator, _ = qa_setup
+
+    is_valid, error_msg, correction = validator.validate_answer(
+        "I am not certain about the verified facts for this question."
+    )
+
+    assert is_valid is False
+    assert "parseable fact statement" in error_msg
+    assert correction is None
+
+
 def test_api_endpoints():
     # Health check
     response = client.get("/api/health")
