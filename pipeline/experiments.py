@@ -113,7 +113,7 @@ def generate_benchmark_metrics():
             question,
             system_context=retrieval_context,
         )
-        final_result = reasoner.reason(question)
+        final_result = reasoner.reason(question, retrieval_context=retrieval_context)
         candidate_grounded = final_result.get("final_answer", "")
 
         for config, prediction in [
