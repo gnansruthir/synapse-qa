@@ -9,6 +9,7 @@ from api.app import app
 from pipeline.knowledge_graph import KnowledgeGraph
 from pipeline.rules import SymbolicValidator
 from pipeline.reasoner import NeuroSymbolicReasoner
+from pipeline.experiments import build_corrupted_examples, generate_question_answer_pairs
 
 client = TestClient(app)
 
@@ -116,6 +117,23 @@ def test_reasoner_can_disable_live_model(qa_setup):
     )
 
     assert deterministic_reasoner.use_live_model is False
+
+
+def test_corrupted_retrieval_is_corrected_by_symbolic_retry(qa_setup):
+    kg, validator, _ = qa_setup
+    reasoner = NeuroSymbolicReasoner(kg, validator, use_live_model=False)
+    examples = generate_question_answer_pairs(kg)
+    corrupted = build_corrupted_examples(examples)
+
+    example = next(item for item in corrupted if item["object"] == "Telephone")
+    result = reasoner.reason(
+        example["question"],
+        retrieval_context=example["retrieval_context"],
+    )
+
+    assert result["hallucination_caught"] is True
+    assert "Alexander Graham Bell" in result["final_answer"]
+    assert "Telephone" in result["final_answer"]
 
 
 def test_validator_rejects_unparsable_candidate(qa_setup):

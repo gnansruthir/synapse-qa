@@ -17,14 +17,24 @@ class NeuroSymbolicReasoner:
         self.use_live_model = use_live_model
 
     def _fact_from_context(self, retrieval_context):
-        """Extract the exact KG fact embedded in a retrieval context string."""
+        """Extract a KG-shaped fact, including a deliberately noisy object."""
         if not retrieval_context:
             return None
-        retrieval_text = retrieval_context.lower()
+
+        retrieval_text = retrieval_context.strip().rstrip(".")
+        retrieval_lower = retrieval_text.lower()
         for triple in self.kg.get_all_triples():
-            fact = f"{triple['subject']} {triple['relation']} {triple['object']}"
-            if fact.lower() in retrieval_text:
-                return triple
+            prefix = f"{triple['subject']} {triple['relation']}"
+            prefix_start = retrieval_lower.find(prefix.lower())
+            if prefix_start >= 0:
+                object_start = prefix_start + len(prefix)
+                object_value = retrieval_text[object_start:].strip(" .")
+                if object_value:
+                    return {
+                        "subject": triple["subject"],
+                        "relation": triple["relation"],
+                        "object": object_value,
+                    }
         return None
 
     def _format_fact_answer(self, triple):
@@ -178,15 +188,17 @@ class NeuroSymbolicReasoner:
                 "data": None
             })
             
-            grounding_fact = self._fact_from_context(retrieval_context)
-            if grounding_fact:
-                grounding_fact = {
-                    "subject": grounding_fact["subject"],
-                    "relation": grounding_fact["relation"],
-                    "expected": grounding_fact["object"],
-                }
+            # Use the question's canonical KG fact, not a potentially noisy
+            # retrieval context, as the correction source.
+            grounding_fact = self._question_grounding_fact(question)
             if grounding_fact is None:
-                grounding_fact = self._question_grounding_fact(question)
+                context_fact = self._fact_from_context(retrieval_context)
+                if context_fact:
+                    grounding_fact = {
+                        "subject": context_fact["subject"],
+                        "relation": context_fact["relation"],
+                        "expected": context_fact["object"],
+                    }
             if grounding_fact is None:
                 grounding_fact = correction or {"subject": "unknown", "relation": "related_to", "expected": "unknown"}
             

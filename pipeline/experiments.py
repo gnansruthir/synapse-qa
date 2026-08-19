@@ -86,6 +86,32 @@ def build_retrieval_context(question, examples):
     return ""
 
 
+def build_corrupted_examples(examples):
+    """Add a deterministic noisy-retrieval track for every third fact."""
+    corrupted_examples = []
+    for index, example in enumerate(examples):
+        if index % 3 != 0:
+            continue
+
+        alternatives = [
+            candidate for candidate in examples
+            if candidate["relation"] == example["relation"]
+            and candidate["object"] != example["object"]
+        ]
+        if not alternatives:
+            continue
+
+        wrong_object = alternatives[0]["object"]
+        corrupted = dict(example)
+        corrupted["track"] = "corrupted_retrieval"
+        corrupted["retrieval_context"] = (
+            f"FACT: {example['subject']} {example['relation']} {wrong_object}."
+        )
+        corrupted_examples.append(corrupted)
+
+    return corrupted_examples
+
+
 def generate_benchmark_metrics():
     global BENCHMARK_CACHE
     if BENCHMARK_CACHE is not None:
@@ -96,6 +122,15 @@ def generate_benchmark_metrics():
     # Keep benchmark results reproducible even when a Gemini key is configured.
     reasoner = NeuroSymbolicReasoner(kg, validator, use_live_model=False)
     examples = generate_question_answer_pairs(kg)
+    clean_examples = [
+        dict(
+            example,
+            track="clean",
+            retrieval_context=build_retrieval_context(example["question"], examples),
+        )
+        for example in examples
+    ]
+    evaluation_examples = clean_examples + build_corrupted_examples(examples)
 
     results = {
         "LLM Alone": {"correct": 0, "f1": 0.0},
@@ -105,18 +140,17 @@ def generate_benchmark_metrics():
     symbolic_catches = 0
     symbolic_changes = 0
 
-    for example in examples:
+    for example in evaluation_examples:
         question = example["question"]
         truth = example["answer"]
-
-        retrieval_context = build_retrieval_context(question, examples)
+        retrieval_context = example["retrieval_context"]
 
         candidate_alone, _ = reasoner._query_llm_candidate(question)
         candidate_with_kg, _ = reasoner._query_llm_candidate(
             question,
             system_context=retrieval_context,
         )
-        final_result = reasoner.reason(question)
+        final_result = reasoner.reason(question, retrieval_context=retrieval_context)
         candidate_grounded = final_result.get("final_answer", "")
         if final_result.get("hallucination_caught"):
             symbolic_catches += 1
@@ -132,7 +166,7 @@ def generate_benchmark_metrics():
                 results[config]["correct"] += 1
             results[config]["f1"] += f1_score(prediction, truth)
 
-    total = len(examples)
+    total = len(evaluation_examples)
     for config in results:
         results[config]["exact_match"] = results[config]["correct"] / total if total else 0.0
         results[config]["f1_score"] = results[config]["f1"] / total if total else 0.0
@@ -142,6 +176,8 @@ def generate_benchmark_metrics():
         "symbolic_catches": symbolic_catches,
         "symbolic_changes": symbolic_changes,
         "total_examples": total,
+        "clean_examples": len(clean_examples),
+        "corrupted_examples": len(evaluation_examples) - len(clean_examples),
     }
     return results
 

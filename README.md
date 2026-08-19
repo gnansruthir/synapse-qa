@@ -49,15 +49,15 @@ SynapseQA is a hybrid QA demonstration that combines neural candidate generation
 
 ## Accuracy Benchmarks
 
-These metrics are computed at runtime from the 24-fact demo dataset with the deterministic local mock; benchmark mode does not call Gemini even when an API key is configured. In the fair ablation below, retrieval and the symbolic pipeline both reach 98.3% F1. The symbolic layer caught and changed all 24 ungrounded mock candidates, grounding them to the same KG facts retrieval returns; on this dataset it matches retrieval rather than adding a measured accuracy gain.
+These metrics are computed at runtime from a 32-example track: 24 clean fact questions plus 8 deterministic noisy-retrieval cases. Benchmark mode uses the local mock and does not call Gemini even when an API key is configured. The noisy track gives retrieval incorrect facts for a subset; symbolic validation grounds those cases back to the canonical KG facts.
 
 | Configuration | F1-Score (last run) | Hallucinations |
 | :--- | :---: | :---: |
-| **LLM Alone** | 13.5% | High |
-| **LLM + KG Retrieval** | 98.3% | Moderate |
+| **LLM Alone** | 13.0% | High |
+| **LLM + KG Retrieval** | 92.1% | Moderate |
 | **LLM + KG + Symbolic (SynapseQA)** | 98.3% | **Contradictions Checked** |
 
-Numbers are from an actual run on the 24-fact demo dataset, not hardcoded; reproduce with `python -m pipeline.experiments` or hit `/api/benchmark` for live numbers. See the note above on why symbolic ties retrieval here.
+Numbers are from an actual run on the 24-fact demo dataset plus the 8-case noisy track, not hardcoded; reproduce with `python -m pipeline.experiments` or hit `/api/benchmark` for live numbers.
 
 ---
 
